@@ -1,0 +1,24 @@
+encoders:
+    name: swin
+    weights: "build/weights/encoder.pth" # Optional: path to pretrained weights
+    kwargs:
+        img_size: [256, 256]
+        patch_size: 2
+        in_chans: 3
+        embed_dims: [128, 192, 256, 320]
+        depths: [2, 2, 6, 2]
+        num_heads: [4, 6, 8, 10]
+        window_size: 8
+        mlp_ratio: 4.0
+        qkv_bias: true
+        norm_layer: LayerNorm
+
+modulator:
+    type: netaware
+    auto_unit: true
+    policy:
+        type: logband
+        B_min: 10.0
+        B_max: 1000.0
+        gamma: 2.0
+        levels: [32, 64, 96, 128, 160, 192]

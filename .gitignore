@@ -1,0 +1,4 @@
+/.DS_Store
+/GenSC-Testbed
+**/weights
+**/__pycache__
