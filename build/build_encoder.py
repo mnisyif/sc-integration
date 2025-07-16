@@ -3,7 +3,7 @@ import torch.nn as nn
 import os
 import yaml
 
-from net.edge import swin, wav2vec2
+from net.edge import swin
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -44,7 +44,7 @@ def build_encoder(encoder_name: str, config_path: str = "build/config.yaml", dev
     # Build the encoder
     encoder_map = {
         'swin': lambda: swin.create_encoder(**kwargs),
-        'wav2vec2': lambda: wav2vec2.Wav2Vec2Encoder(**kwargs),
+        # 'wav2vec2': lambda: wav2vec2.Wav2Vec2Encoder(**kwargs),
         # Add other encoders here as needed
     }
 

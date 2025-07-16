@@ -13,6 +13,20 @@ encoders:
         qkv_bias: true
         norm_layer: LayerNorm
 
+decoders:
+    name: swin
+    weights: "build/weights/decoder.pth"
+    kwargs:
+        img_size: [256, 256]
+        embed_dims: [320, 256, 192, 128]
+        depths: [2, 6, 2, 2]
+        num_heads: [10, 8, 6, 4]
+        window_size: 8
+        mlp_ratio: 4.0
+        qkv_bias: true
+        norm_layer: LayerNorm
+        patch_norm: true
+
 modulator:
     type: netaware
     auto_unit: true

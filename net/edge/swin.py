@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from timm.layers.weight_init import trunc_normal_
 
-from net.architectures.swin_transformer import SwinTransformerBlock, PatchMerging, PatchEmbed
+from net.architectures.swin import SwinTransformerBlock, PatchMerging, PatchEmbed
 
 class BasicLayer_Encoder(nn.Module):
     def __init__(self, dim, out_dim, input_resolution, depth, num_heads, window_size, mlp_ratio=4.,
