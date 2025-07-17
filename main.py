@@ -1,12 +1,13 @@
 import torch, os
 
 from torchvision.transforms import ToPILImage
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from data.datasets import get_loader
+from net.adapters.llama_adapter import LLaMAAdapter
 from build.build_encoder import build_encoder
 # from build.build_decoder import build_decoder
-from net.adapters.llama_adapter import LLaMAAdapter
-from net.cloud.llama3 import LLaMAModel
+# from net.cloud.llama3 import LLaMAModel
 class SharedState:
     def __init__(self):
         self.H = 0
@@ -29,48 +30,48 @@ def main():
 
     # print(f"Train_loader size: {train_loader.__len__()}, Test_loader size: {test_loader.__len__()}")
     encoder = build_encoder(encoder_name='swin', device=device).to(device)
-    
-    # adapter = LLaMAAdapter(
-    #     input_dim=encoder.embed_dims[-1],       # or the last encoder dimension
-    #     llama_dim=LLaMAModel().get_embedding_dim(),
-    #     num_visual_tokens=256
-    # ).to(device)
-    # # llama model
-    # llama = LLaMAModel(device=device)
+
+    # ——— load small LLM & tokenizer ———
+    llm_name = "distilgpt2"
+    tokenizer = AutoTokenizer.from_pretrained(llm_name)
+    llm = AutoModelForCausalLM.from_pretrained(llm_name).to(device)
+
+    # ——— adapter to map encoder outputs → llm hidden_size ———
+    adapter = LLaMAAdapter(
+        input_dim=encoder.embed_dims[-1],
+        llama_dim=llm.config.hidden_size,
+        num_visual_tokens=32
+    ).to(device)
 
     with torch.no_grad():
-
         for b_idx, batch in enumerate(test_loader):
-            # batch has shape [1, 3, H, W]
-                x = batch.to(device)
+            x = batch.to(device)                    # [1,3,H,W]
+            _, _, H, W = x.shape
+            if H!=state.H or W!=state.W:
+                encoder.update_resolution(H, W)
+                state.H, state.W = H, W
 
-                _, _, H, W = x.shape
-                if H != state.H or W != state.W:
-                    encoder.update_resolution(H, W) # type: ignore
-                    # decoder.update_resolution(H // (2 ** state.downsample), W // (2 ** state.downsample)) # type: ignore
-                    state.H, state.W = H, W
+            feats = encoder(x)                      # [1, N, C]
+            adapted = adapter(feats)               # [1, num_tokens, hidden_size]
 
-                # forward through encoder + decoder
-                feats       = encoder(x)               # [1, …]
-                encoder = encoder.to("cpu")
-                torch.cuda.empty_cache()
+            # build text prompt embeddings
+            prompt = "Describe the image:"
+            enc = tokenizer(prompt, return_tensors="pt")
+            txt_emb = llm.get_input_embeddings()(enc.input_ids.to(device))
 
-                adapter = LLaMAAdapter(
-                    input_dim=320,       # or the last encoder dimension
-                    llama_dim=LLaMAModel().get_embedding_dim(),
-                    num_visual_tokens=256
-                ).to(device)
-                # llama model
-                llama = LLaMAModel(device=device)
-                # 4) adapt to fixed‐size visual tokens
-                vis_tokens = adapter(feats)        # [1, num_tokens, llama_dim]
+            # prepend visual tokens
+            inputs_embeds = torch.cat([adapted, txt_emb], dim=1)
 
-                # 5) generate caption
-                caption = llama.generate_from_features(
-                    vis_tokens,
-                    prompt="Describe the image in one phrase:"
-                )
-                print("Caption:", caption)
+            # generate
+            outputs = llm.generate(
+                inputs_embeds=inputs_embeds,
+                max_new_tokens=50,
+                do_sample=True,
+                temperature=0.7
+            )
+            caption = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            print(f"Caption: {caption}")
+            break
 
 if __name__ == "__main__":    
     main()
