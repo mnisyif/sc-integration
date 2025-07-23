@@ -13,6 +13,17 @@ encoders:
         qkv_bias: true
         norm_layer: LayerNorm
 
+classifier:
+    kwargs:
+        encoder_dim: 768
+        drop_rate: 0.1
+    weights: null
+
+data:
+    train_dir: "GT_Images_Classification/Train"
+    test_dir: "GT_Images_Classification/Test"
+    img_size: [256, 256]
+
 decoders:
     name: swin
     weights: "build/weights/decoder.pth"
