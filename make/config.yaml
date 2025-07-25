@@ -15,14 +15,27 @@ encoders:
 
 classifier:
     kwargs:
-        encoder_dim: 768
+        encoder_dim: 320
         drop_rate: 0.1
+        num_classes: 16
     weights: null
 
 data:
-    train_dir: "GT_Images_Classification/Train"
-    test_dir: "GT_Images_Classification/Test"
+    train_dir: "GenSC-Testbed/GT_Images_Classification/Train"
+    test_dir: "GenSC-Testbed/GT_Images_Classification/Test"
     img_size: [256, 256]
+
+training:
+    num_epochs: 100
+    batch_size: 32
+    learning_rate: 0.0001
+    weight_decay: 0.0001
+    num_workers: 8
+    checkpoint_dir: "checkpoints"
+    scheduler:
+        type: "CosineAnnealingLR"
+        T_max: 50
+        eta_min: 0.00001
 
 decoders:
     name: swin
