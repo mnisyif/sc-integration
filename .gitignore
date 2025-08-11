@@ -1,6 +1,11 @@
 **/.DS_Store
-/GenSC-Testbed
-**/weights
+
+# **/weights
 **/__pycache__
 **/run
+
 /checkpoints
+/media
+
+# ignore files
+*.pth
