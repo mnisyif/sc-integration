@@ -47,6 +47,8 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch
 
+from timm.layers.weight_init import trunc_normal_
+
 class GenericClassifier(nn.Module):
     """
     Handles both (B, N, C) and (B, C, H', W') encoder outputs.
@@ -183,3 +185,55 @@ class AttentionPoolingClassifier(nn.Module):
         # Project and classify
         x = self.feature_proj(x)
         return self.classifier(x)
+
+class SwinClassifier(nn.Module):
+    """
+    Swin Classifier that takes latent representations from a pretrained encoder
+    and performs classification.
+    """
+    def __init__(self, encoder_dim, num_classes, dropout=0.1):
+        super().__init__()
+        self.encoder_dim = encoder_dim
+        self.num_classes = num_classes
+        
+        # Global average pooling to reduce sequence dimension
+        self.global_pool = nn.AdaptiveAvgPool1d(1)
+        
+        # Classification head
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(encoder_dim),
+            nn.Dropout(dropout),
+            nn.Linear(encoder_dim, encoder_dim // 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(encoder_dim // 2, num_classes)
+        )
+        
+        # Initialize weights
+        self.apply(self._init_weights)
+        
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+    
+    def forward(self, latent_features):
+        """
+        Args:
+            latent_features: (B, L, C) - latent features from encoder
+        Returns:
+            logits: (B, num_classes) - classification logits
+        """
+        # latent_features shape: (B, L, C) where L is sequence length
+        # Global average pooling: (B, L, C) -> (B, C, L) -> (B, C, 1) -> (B, C)
+        x = latent_features.transpose(1, 2)  # (B, C, L)
+        x = self.global_pool(x).squeeze(-1)  # (B, C)
+        
+        # Classification
+        logits = self.classifier(x)  # (B, num_classes)
+        
+        return logits
