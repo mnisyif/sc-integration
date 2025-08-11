@@ -7,7 +7,7 @@ from net.edge import swin
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def build_encoder(encoder_name: str, config_path: str = "build/config.yaml", device = device) -> nn.Module:
+def build_encoder(encoder_name: str, config_path: str = "builder/config.yaml") -> nn.Module:
     """
     Build an encoder from config.yaml and load weights if they exist.
     

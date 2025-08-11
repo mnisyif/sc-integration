@@ -1,6 +1,6 @@
 encoders:
     name: swin
-    weights: "build/weights/encoder.pth" # Optional: path to pretrained weights
+    weights: "builder/weights/encoder.pth" # Optional: path to pretrained weights
     kwargs:
         img_size: [256, 256]
         patch_size: 2
